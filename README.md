@@ -23,6 +23,7 @@ I do plan on improving the script further over time.
 ```bash
 
 python main.py
+```
 
 ## Disclaimer
 
