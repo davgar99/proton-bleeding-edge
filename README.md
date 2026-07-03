@@ -4,6 +4,8 @@ This is a small learning project where I am experimenting with Python automation
 
 The goal is not to replace Proton's official build instructions. This repo is mainly for learning how the Proton build process works and improving my Python/Linux workflow over time.
 
+I do plan on improving the script further over time.
+
 ## Requirements
 
 - Linux
@@ -20,4 +22,8 @@ The goal is not to replace Proton's official build instructions. This repo is ma
 
 ```bash
 
-python main.p
+python main.py
+
+## Disclaimer
+
+This is an unofficial learning project. It is not affiliated with Valve, Steam, or Proton. All credit goes to Valve.
