@@ -19,7 +19,9 @@ def user_query(
         case_empty: function = lambda: none(),
         case_: function = lambda: RETRY,
         max_attempts: int = 1,
-        fail_message: str = "Invalid input, try again."
+        fail_message: str = "Invalid input, try again.",
+        fallback_message: str = "Too many invalid attempts.",
+        fallback_script: function = lambda: none()
         ):
     attempt = 1
     while max_attempts == 0 or attempt <= max_attempts:
@@ -38,7 +40,10 @@ def user_query(
         if result != RETRY:
             return result
         
-        print(fail_message)
+        if max_attempts == 0 or attempt <= max_attempts:
+            print(fail_message)
+    print(fallback_message)
+    return fallback_script()
 
 def raise_valueerror(msg):
     raise ValueError(msg)
@@ -62,8 +67,8 @@ def get_proton_dir(default_dir_name: str) -> str:
         else:
             return response
     
-    print(f"3 invalid directory renaming attempts.\n"
-          f"Using default name '{default_dir_name}'.")
+    print(f"Too many invalid attempts.\n\
+          Using default name '{default_dir_name}'.")
     sleep(1)
     return(default_dir_name)
 
@@ -124,7 +129,9 @@ def main() -> None:
         case_n = lambda: _PROTON_DIR,
         case_empty = lambda: get_proton_dir(_PROTON_DIR),
         case_ = lambda: RETRY,
-        max_attempts = 3
+        max_attempts = 3,
+        fallback_message = f"Too many invalid attempts.\nUsing default name '{_PROTON_DIR}'.",
+        fallback_script = lambda: _PROTON_DIR
         )
 
     proton_dir_exists = os.path.exists(f"{_HOME_DIR}/.steam/root/compatibilitytools.d/{proton_dir}")
