@@ -20,8 +20,9 @@ I do plan on improving the script further over time.
 
 ## Usage
 
-```bash
+#### Warning: Compilation time can take up to 20 minutes depending on your CPU, on modern ones it takes around 1 minute.
 
+```bash
 python main.py
 ```
 
