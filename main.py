@@ -10,19 +10,16 @@ RETRY = object()
 
 # -- Helper functions --
 
-def none():
-    return None
-
 def user_query(
         input_message: str,
-        case_y: Callable[[], object] = lambda: none(), 
-        case_n: Callable[[], object] = lambda: none(),
-        case_empty: Callable[[], object] = lambda: none(),
+        case_y: Callable[[], object] = lambda: None, 
+        case_n: Callable[[], object] = lambda: None,
+        case_empty: Callable[[], object] = lambda: None,
         case_: Callable[[], object] = lambda: RETRY,
         max_attempts: int = 1,
         fail_message: str = "Invalid input, try again.",
         fallback_message: str = "Too many invalid attempts.",
-        fallback_script: Callable[[], object] = lambda: none()
+        fallback_script: Callable[[], object] = lambda: None
         ):
     attempt = 1
     while max_attempts == 0 or attempt <= max_attempts:
@@ -66,7 +63,7 @@ def get_name(input_message: str, default_name: str, label: str) -> str:
             print(f"{label} name cannot be empty.")
             pass
         elif not is_valid_dir_name(response):
-            print(f"Invalid {label.lower()} name. Use letters, digits, '.', '_' and '-' only.")
+            print(f"Invalid {label.lower()} name. Use letters, digits, '.', '_', and '-' only.")
             pass
         else:
             return response
