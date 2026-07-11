@@ -129,7 +129,7 @@ def main() -> None:
         case_n = lambda: (_BUILD_NAME, _PROTON_DIR),
         case_empty = lambda: get_build_and_proton_dir(_BUILD_NAME, _PROTON_DIR),
         case_ = lambda: RETRY,
-        max_attempts = 3,
+        max_attempts = MAX_NAME_ATTEMPTS,
         fallback_message = f"Too many invalid attempts.\nUsing default names '{_BUILD_NAME}' and '{_PROTON_DIR}'.",
         fallback_script = lambda: (_BUILD_NAME, _PROTON_DIR)
         )
@@ -152,14 +152,14 @@ def main() -> None:
             input_message = f"The directory {proton_dir} already exists in Steam compatibilitytools.d. Would you like to overwrite it? [Y/n] ",
             case_y = lambda: move_proton_dir(_HOME_DIR, proton_dir, proton_dir_exists),
             case_empty = lambda: move_proton_dir(_HOME_DIR, proton_dir, proton_dir_exists),
-            max_attempts = 3
+            max_attempts = MAX_NAME_ATTEMPTS
             )
     else:
         user_query(
             input_message = "Would you like this script to move the build to your Steam compatibilitytools.d directory? [Y/n] ",
             case_y = lambda: move_proton_dir(_HOME_DIR, proton_dir, proton_dir_exists),
             case_empty = lambda: move_proton_dir(_HOME_DIR, proton_dir, proton_dir_exists),
-            max_attempts = 3
+            max_attempts = MAX_NAME_ATTEMPTS
             )
 
 if __name__ == "__main__":
