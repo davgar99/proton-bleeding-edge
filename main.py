@@ -2,6 +2,7 @@ import os
 import re
 import subprocess
 from time import sleep
+from typing import Callable
 
 # -- Global Variables --
 
@@ -14,14 +15,14 @@ def none():
 
 def user_query(
         input_message: str,
-        case_y: function = lambda: none(), 
-        case_n: function = lambda: none(),
-        case_empty: function = lambda: none(),
-        case_: function = lambda: RETRY,
+        case_y: Callable[[], object] = lambda: none(), 
+        case_n: Callable[[], object] = lambda: none(),
+        case_empty: Callable[[], object] = lambda: none(),
+        case_: Callable[[], object] = lambda: RETRY,
         max_attempts: int = 1,
         fail_message: str = "Invalid input, try again.",
         fallback_message: str = "Too many invalid attempts.",
-        fallback_script: function = lambda: none()
+        fallback_script: Callable[[], object] = lambda: none()
         ):
     attempt = 1
     while max_attempts == 0 or attempt <= max_attempts:
@@ -54,23 +55,31 @@ def is_valid_dir_name(dir_name: str) -> bool:
 # -- Primary functions --
 
 def get_proton_dir(default_dir_name: str) -> str:
+    return get_name("Please enter the directory name: ", default_dir_name, "Directory")
+
+def get_name(input_message: str, default_name: str, label: str) -> str:
     attempt: int = 1
     while attempt <= 3:
         attempt += 1
-        response = input("Please enter the directory name: ").strip()
+        response = input(input_message).strip()
         if not response:
-            print("Directory name cannot be empty.")
+            print(f"{label} name cannot be empty.")
             pass
         elif not is_valid_dir_name(response):
-            print("Invalid directory name. Use letters, digits, '.', '_' '-' only.")
+            print(f"Invalid {label.lower()} name. Use letters, digits, '.', '_' and '-' only.")
             pass
         else:
             return response
     
     print(f"Too many invalid attempts.\n\
-          Using default name '{default_dir_name}'.")
+          Using default name '{default_name}'.")
     sleep(1)
-    return(default_dir_name)
+    return default_name
+
+def get_build_and_proton_dir(default_build_name: str, default_dir_name: str) -> tuple[str, str]:
+    build_name = get_name("Please enter the build name: ", default_build_name, "Build")
+    proton_dir = get_proton_dir(default_dir_name)
+    return build_name, proton_dir
 
 def move_proton_dir(home_dir: str, proton_dir: str, proton_dir_exists: bool) -> None:
     if proton_dir_exists:
@@ -84,6 +93,7 @@ def main() -> None:
     # Variables
     _GIT_REPO: str = "https://github.com/ValveSoftware/Proton.git"
     _GIT_BRANCH: str = "bleeding-edge"
+    _BUILD_NAME: str = "my_build"
     _PROTON_DIR: str = "proton-bleeding-edge"
     _HOME_DIR: str = os.path.expanduser("~")
 
@@ -111,28 +121,28 @@ def main() -> None:
         print("Repo has been cloned successfully.")
 
     sleep(2)
-    
+
+    build_name, proton_dir = user_query(
+        input_message = "Would you like to give Proton custom build and directory names? [Y/n] ",
+        case_y = lambda: get_build_and_proton_dir(_BUILD_NAME, _PROTON_DIR),
+        case_n = lambda: (_BUILD_NAME, _PROTON_DIR),
+        case_empty = lambda: get_build_and_proton_dir(_BUILD_NAME, _PROTON_DIR),
+        case_ = lambda: RETRY,
+        max_attempts = 3,
+        fallback_message = f"Too many invalid attempts.\nUsing default names '{_BUILD_NAME}' and '{_PROTON_DIR}'.",
+        fallback_script = lambda: (_BUILD_NAME, _PROTON_DIR)
+        )
+     
     # Build Proton
     os.makedirs("build", exist_ok=True)
     os.chdir("build")
-    subprocess.run(["../configure.sh", "--enable-ccache", "--build-name=my_build"])
+    subprocess.run(["../configure.sh", "--enable-ccache", f"--build-name={build_name}"], check=True)
 
     _JOBS = os.cpu_count() or 1
     print(f"Creating Jobs: {_JOBS} created")
     subprocess.run(["make", f"-j{_JOBS}", "redist"], check=True)
 
     print("Proton has finished compiling.")
-
-    proton_dir = user_query(
-        input_message = "Would you like to give Proton a custom directory name? [Y/n] ",
-        case_y = lambda: get_proton_dir(_PROTON_DIR),
-        case_n = lambda: _PROTON_DIR,
-        case_empty = lambda: get_proton_dir(_PROTON_DIR),
-        case_ = lambda: RETRY,
-        max_attempts = 3,
-        fallback_message = f"Too many invalid attempts.\nUsing default name '{_PROTON_DIR}'.",
-        fallback_script = lambda: _PROTON_DIR
-        )
 
     proton_dir_exists = os.path.exists(f"{_HOME_DIR}/.steam/root/compatibilitytools.d/{proton_dir}")
 
@@ -145,7 +155,7 @@ def main() -> None:
             )
     else:
         user_query(
-            input_message = "Would you like this script to move the file over to your Steam compatibilitytools.d directory? [Y/n] ",
+            input_message = "Would you like this script to move the build to your Steam compatibilitytools.d directory? [Y/n] ",
             case_y = lambda: move_proton_dir(_HOME_DIR, proton_dir, proton_dir_exists),
             case_empty = lambda: move_proton_dir(_HOME_DIR, proton_dir, proton_dir_exists),
             max_attempts = 3

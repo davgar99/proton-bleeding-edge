@@ -20,11 +20,13 @@ I do plan on improving the script further over time.
 
 ## Usage
 
-#### Warning: Compilation time can take up to 20 minutes depending on your CPU, on modern ones it takes around 1 minute.
+#### Warning: Compilation time can take up to 20 minutes depending on your CPU. On modern CPUs, it usually takes around 1 minute.
 
 ```bash
 python main.py
 ```
+
+The script now prompts for the Proton build name and compatibility tools directory name before the build starts.
 
 ## Disclaimer
 
