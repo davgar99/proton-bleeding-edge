@@ -1,1 +1,3 @@
 Proton
+__pycache__/
+*.pyc

@@ -8,7 +8,7 @@ from typing import Callable, Tuple
 
 RETRY = object()
 MAX_NAME_ATTEMPTS = 3
-NAME_PATTERN = re.compile(r"[A-Za-z0-9._-]+")
+NAME_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 ALLOWED_NAME_CHARACTERS = "letters, digits, '.', '_', and '-'"
 
 # -- Helper functions --
@@ -52,6 +52,19 @@ def raise_valueerror(msg):
 def is_valid_name(name: str) -> bool:
     return bool(NAME_PATTERN.fullmatch(name))
 
+def update_existing_proton_repo() -> None:
+    print("Proton directory already exists. Fetching remote repository:")
+    os.chdir("Proton")
+    subprocess.run(["git", "fetch", "--recurse-submodules"], check=True)
+    local = subprocess.check_output(["git", "rev-parse", "@"]).strip()
+    remote = subprocess.check_output(["git", "rev-parse", "@{u}"]).strip()
+
+    if local != remote:
+        print("Updating your local repository...")
+        subprocess.run(["git", "pull", "--ff-only", "--recurse-submodules"], check=True)
+    else:
+        print("Your local repository is on the latest version already.")
+
 # -- Primary functions --
 
 def get_proton_dir(default_dir_name: str) -> str:
@@ -83,9 +96,16 @@ def get_build_and_proton_dir(default_build_name: str, default_dir_name: str) -> 
     return build_name, proton_dir
 
 def move_proton_dir(home_dir: str, proton_dir: str, proton_dir_exists: bool) -> None:
+    compatibilitytools_dir = os.path.join(home_dir, ".steam", "root", "compatibilitytools.d")
+    target_dir = os.path.join(compatibilitytools_dir, proton_dir)
+    staged_dir = f"{target_dir}.tmp"
+
+    if os.path.exists(staged_dir):
+        subprocess.run(["rm", "-rf", staged_dir], check=True)
+    subprocess.run(["cp", "-r", "redist", staged_dir], check=True)
     if proton_dir_exists:
-        subprocess.run(["rm", "-rf", f"{home_dir}/.steam/root/compatibilitytools.d/{proton_dir}"], check=True)
-    subprocess.run(["cp", "-r", "dist", f"{home_dir}/.steam/root/compatibilitytools.d/{proton_dir}"], check=True)
+        subprocess.run(["rm", "-rf", target_dir], check=True)
+    subprocess.run(["mv", staged_dir, target_dir], check=True)
     print(f"Proton has been moved to your Steam compatibilitytools.d directory as {proton_dir}.")
 
 # -- Main function --
@@ -101,19 +121,7 @@ def main() -> None:
     # Check if the Proton directory already exists
     if os.path.exists("Proton"):
         # If it exists, just update the repository and submodules
-        print("Proton directory already exists. Fetching remote repository:")
-        os.chdir("Proton")
-
-        # Fetch remote repository
-        subprocess.run(["git", "fetch", "--recurse-submodules"], check=True)
-        local = subprocess.check_output(["git", "rev-parse", "@"]).strip()
-        remote = subprocess.check_output(["git", "rev-parse", "@"]).strip()
-
-        if local != remote:
-            print("Updating your local repository...")
-            subprocess.run(["git", "pull", "--recurse-submodules"], check=True)
-        else:
-            print("Your local repository is on the latest version already.")
+        update_existing_proton_repo()
     else:
         # Clone the Proton repository and checkout the bleeding-edge branch
         print("Cloning the Proton repository...")
