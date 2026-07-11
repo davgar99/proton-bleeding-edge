@@ -74,6 +74,7 @@ def get_name(input_message: str, default_name: str, label: str) -> str:
     return default_name
 
 def get_build_and_proton_dir(default_build_name: str, default_dir_name: str) -> tuple[str, str]:
+    """Prompt for both custom names before the build starts, with defaults as fallbacks."""
     build_name = get_name("Please enter the build name: ", default_build_name, "Build")
     proton_dir = get_proton_dir(default_dir_name)
     return build_name, proton_dir

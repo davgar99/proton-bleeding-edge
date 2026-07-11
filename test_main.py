@@ -13,7 +13,9 @@ class MainTests(unittest.TestCase):
         self.assertEqual(proton_dir, "custom-dir")
 
     def test_get_build_and_proton_dir_falls_back_to_defaults(self) -> None:
-        with patch("builtins.input", side_effect=["", "", "", "", "", ""]):
+        retry_inputs = [""] * 6
+
+        with patch("builtins.input", side_effect=retry_inputs):
             build_name, proton_dir = main.get_build_and_proton_dir("my_build", "proton-bleeding-edge")
 
         self.assertEqual(build_name, "my_build")
