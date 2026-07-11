@@ -7,6 +7,9 @@ from typing import Callable
 # -- Global Variables --
 
 RETRY = object()
+MAX_NAME_ATTEMPTS = 3
+NAME_PATTERN = re.compile(r"[A-Za-z0-9._-]+")
+ALLOWED_NAME_CHARACTERS = "letters, digits, '.', '_', and '-'"
 
 # -- Helper functions --
 
@@ -46,8 +49,8 @@ def user_query(
 def raise_valueerror(msg):
     raise ValueError(msg)
 
-def is_valid_dir_name(dir_name: str) -> bool:
-    return bool(re.fullmatch(r"[A-Za-z0-9._-]+", dir_name))
+def is_valid_name(name: str) -> bool:
+    return bool(NAME_PATTERN.fullmatch(name))
 
 # -- Primary functions --
 
@@ -56,14 +59,14 @@ def get_proton_dir(default_dir_name: str) -> str:
 
 def get_name(input_message: str, default_name: str, label: str) -> str:
     attempt: int = 1
-    while attempt <= 3:
+    while attempt <= MAX_NAME_ATTEMPTS:
         attempt += 1
         response = input(input_message).strip()
         if not response:
             print(f"{label} name cannot be empty.")
             pass
-        elif not is_valid_dir_name(response):
-            print(f"Invalid {label.lower()} name. Use letters, digits, '.', '_', and '-' only.")
+        elif not is_valid_name(response):
+            print(f"Invalid {label.lower()} name. Use {ALLOWED_NAME_CHARACTERS} only.")
             pass
         else:
             return response
@@ -130,7 +133,7 @@ def main() -> None:
         fallback_message = f"Too many invalid attempts.\nUsing default names '{_BUILD_NAME}' and '{_PROTON_DIR}'.",
         fallback_script = lambda: (_BUILD_NAME, _PROTON_DIR)
         )
-     
+
     # Build Proton
     os.makedirs("build", exist_ok=True)
     os.chdir("build")
