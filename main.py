@@ -14,8 +14,6 @@ PROTON_REPOSITORY_URL = "https://github.com/ValveSoftware/Proton.git"
 PROTON_BRANCH = "bleeding-edge"
 DEFAULT_BUILD_NAME = "my_build"
 DEFAULT_PROTON_DIR = "proton-bleeding-edge"
-DEFAULT_SLEEP_SECONDS = 1
-POST_CLONE_DELAY_SECONDS = 2
 MIN_JOB_COUNT = 1
 STAGED_DIRECTORY_SUFFIX = ".tmp"
 STEAM_COMPATIBILITY_PATH = os.path.join(
@@ -105,7 +103,7 @@ def get_name(input_message: str, default_name: str, label: str) -> str:
         "Too many invalid attempts.\n"
         f"Using default name '{default_name}'."
     )
-    sleep(DEFAULT_SLEEP_SECONDS)
+    sleep(1)
     return default_name
 
 
@@ -165,7 +163,7 @@ def main() -> None:
         os.chdir(PROTON_DIRECTORY)
         print("Repo has been cloned successfully.")
 
-    sleep(POST_CLONE_DELAY_SECONDS)
+    sleep(2)
 
     def prompt_for_custom_names() -> Tuple[str, str]:
         return get_build_and_proton_dir(

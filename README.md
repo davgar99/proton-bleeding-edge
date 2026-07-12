@@ -26,8 +26,6 @@ I do plan on improving the script further over time.
 python main.py
 ```
 
-The script now prompts for the Proton build name and compatibility tools directory name before the build starts.
-
 ## Disclaimer
 
 This is an unofficial learning project. It is not affiliated with Valve, Steam, or Proton. All credit goes to Valve.
