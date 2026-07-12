@@ -69,6 +69,9 @@ def user_query(
 
 
 def is_valid_name(name: str) -> bool:
+    if name in {".", ".."}:
+        return False
+
     return bool(NAME_PATTERN.fullmatch(name))
 
 
