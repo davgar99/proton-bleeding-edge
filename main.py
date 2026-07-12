@@ -118,11 +118,14 @@ def prompt_for_install_directory(default_name: str) -> str:
 
 
 def get_git_revision(source_dir: Path, revision: str) -> str:
-    return subprocess.check_output(
+    completed_process = subprocess.run(
         ["git", "rev-parse", revision],
         cwd=source_dir,
+        capture_output=True,
         text=True,
-    ).strip()
+        check=True,
+    )
+    return completed_process.stdout.strip()
 
 
 def prepare_proton_source(workspace_dir: Path) -> Path:
@@ -184,8 +187,8 @@ def build_proton(source_dir: Path, build_name: str) -> Path:
     )
 
     job_count = os.cpu_count() or 1
-    job_label = "jobs" if job_count != 1 else "job"
-    print(f"Running make with {job_count} parallel {job_label}.")
+    job_word = "jobs" if job_count != 1 else "job"
+    print(f"Running make with {job_count} parallel {job_word}.")
     subprocess.run(["make", f"-j{job_count}", "redist"], cwd=build_dir, check=True)
 
     print("Proton has finished compiling.")
