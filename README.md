@@ -1,31 +1,55 @@
 # Proton Bleeding Edge Automated Script
 
-This is a small learning project where I am experimenting with Python automation, Valve Proton, Git submodules, and Linux build tooling.
+> A small personal learning project for automating Proton bleeding-edge builds on Linux.
 
-The goal is not to replace Proton's official build instructions. This repo is mainly for learning how the Proton build process works and improving my Python/Linux workflow over time.
+## Overview
 
-I do plan on improving the script further over time.
+This repository explores:
+
+- Python automation
+- Valve Proton source builds
+- Git submodules
+- Linux build tooling
+
+It is **not** meant to replace Proton's official build instructions. The goal is to better understand the build process and improve Python and Linux workflow skills over time.
 
 ## Requirements
 
+Before running the script, make sure you have:
+
 - Linux
-
 - Python 3
-
 - Git
-
 - Docker or Podman
+- Build tools such as `make` and `gcc`
 
-- Build tools such as make and GCC
+## What the Script Does
+
+The script can:
+
+1. Clone or update the Proton bleeding-edge repository
+2. Let you choose a custom build name before compilation
+3. Build Proton with parallel jobs based on your CPU count
+4. Optionally install the finished build into Steam's `compatibilitytools.d` directory
+5. Let you choose a custom install directory name
 
 ## Usage
 
-#### Warning: Compilation time can take up to 20 minutes depending on your CPU, on modern ones it takes around 1 minute.
+### Build Proton
+
+> **Warning**
+> Compilation time can vary a lot depending on your hardware. On slower systems it may take much longer, while on faster modern CPUs it can finish in around a minute.
 
 ```bash
 python main.py
 ```
 
+During the run, the script will prompt you for:
+
+- A custom Proton build name (optional)
+- A custom install directory name (optional)
+- Whether the finished build should be copied into Steam's compatibility tools directory
+
 ## Disclaimer
 
-This is an unofficial learning project. It is not affiliated with Valve, Steam, or Proton. All credit goes to Valve.
+This is an unofficial learning project. It is **not affiliated** with Valve, Steam, or Proton. Credit for Proton belongs to Valve and its contributors.
