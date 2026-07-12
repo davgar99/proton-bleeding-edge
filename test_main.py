@@ -1,7 +1,8 @@
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import main
 
@@ -80,6 +81,33 @@ class MainTests(unittest.TestCase):
             cwd=expected_dir,
             check=True,
         )
+        mock_sleep.assert_called_once_with(main.BUILD_READY_DELAY_SECONDS)
+
+    @patch("main.sleep")
+    @patch("main.subprocess.run")
+    @patch(
+        "main.get_git_revision",
+        side_effect=[
+            "local",
+            subprocess.CalledProcessError(1, ["git", "rev-parse", "@{u}"]),
+            "remote",
+        ],
+    )
+    def test_prepare_proton_source_falls_back_when_upstream_is_missing(
+        self,
+        mock_revision,
+        mock_run,
+        mock_sleep,
+    ):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            workspace_dir = Path(temp_dir)
+            (workspace_dir / main.PROTON_SOURCE_DIRECTORY).mkdir()
+
+            source_dir = main.prepare_proton_source(workspace_dir)
+
+        expected_dir = Path(temp_dir) / main.PROTON_SOURCE_DIRECTORY
+        self.assertEqual(source_dir, expected_dir)
+        self.assertEqual(mock_revision.call_count, 3)
         mock_sleep.assert_called_once_with(main.BUILD_READY_DELAY_SECONDS)
 
     def test_install_proton_replaces_existing_directory(self):

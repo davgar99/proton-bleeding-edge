@@ -4,7 +4,7 @@ import shutil
 import subprocess
 from pathlib import Path
 from time import sleep
-from typing import Any, Callable
+from typing import Any, Callable, TypeAlias
 
 RETRY = object()
 INPUT_ATTEMPT_LIMIT = 3
@@ -19,7 +19,7 @@ PROTON_DIST_DIRECTORY = "dist"
 STEAM_COMPATIBILITYTOOLS_DIRECTORY = ".steam/root/compatibilitytools.d"
 NAME_PATTERN = re.compile(r"[A-Za-z0-9._-]+")
 
-PromptCallback = Callable[[], Any]
+PromptCallback: TypeAlias = Callable[[], Any]
 
 
 def no_action() -> None:
@@ -135,7 +135,10 @@ def prepare_proton_source(workspace_dir: Path) -> Path:
             check=True,
         )
         local_revision = get_git_revision(source_dir, "@")
-        remote_revision = get_git_revision(source_dir, f"origin/{GIT_BRANCH}")
+        try:
+            remote_revision = get_git_revision(source_dir, "@{u}")
+        except subprocess.CalledProcessError:
+            remote_revision = get_git_revision(source_dir, f"origin/{GIT_BRANCH}")
 
         if local_revision != remote_revision:
             print("Updating your local repository...")
