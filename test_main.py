@@ -21,16 +21,25 @@ class MainTests(unittest.TestCase):
         mock_sleep.assert_not_called()
 
     @patch("main.sleep")
+    @patch("builtins.print")
     @patch("builtins.input", side_effect=["", "bad name", ""])
     def test_get_name_uses_default_after_invalid_attempts(
         self,
         mock_input,
+        mock_print,
         mock_sleep,
     ):
         result = main.get_name("Name: ", "fallback-name")
 
         self.assertEqual(result, "fallback-name")
         mock_sleep.assert_called_once_with(1)
+        mock_print.assert_any_call("Name cannot be empty.")
+        mock_print.assert_any_call(
+            "Invalid name. Use letters, digits, '.', '_' or '-' only."
+        )
+        mock_print.assert_any_call(
+            "Too many invalid attempts.\nUsing default name 'fallback-name'."
+        )
 
     @patch("main.os.cpu_count", return_value=4)
     @patch("main.subprocess.run")

@@ -138,6 +138,10 @@ def prepare_proton_source(workspace_dir: Path) -> Path:
         try:
             remote_revision = get_git_revision(source_dir, "@{u}")
         except subprocess.CalledProcessError:
+            print(
+                "No upstream tracking branch was found. Falling back to the "
+                f"origin/{GIT_BRANCH} reference."
+            )
             remote_revision = get_git_revision(source_dir, f"origin/{GIT_BRANCH}")
 
         if local_revision != remote_revision:
@@ -180,7 +184,8 @@ def build_proton(source_dir: Path, build_name: str) -> Path:
     )
 
     job_count = os.cpu_count() or 1
-    print(f"Running make with {job_count} parallel job(s).")
+    job_label = "jobs" if job_count != 1 else "job"
+    print(f"Running make with {job_count} parallel {job_label}.")
     subprocess.run(["make", f"-j{job_count}", "redist"], cwd=build_dir, check=True)
 
     print("Proton has finished compiling.")
