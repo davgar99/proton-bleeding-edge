@@ -163,8 +163,6 @@ def main() -> None:
         os.chdir(PROTON_DIRECTORY)
         print("Repo has been cloned successfully.")
 
-    sleep(2)
-
     def prompt_for_custom_names() -> Tuple[str, str]:
         return get_build_and_proton_dir(
             DEFAULT_BUILD_NAME,
