@@ -85,15 +85,6 @@ def update_existing_proton_repo() -> None:
     else:
         print("Your local repository is on the latest version already.")
 
-
-def get_proton_dir(default_dir_name: str) -> str:
-    return get_name(
-        "Please enter the directory name: ",
-        default_dir_name,
-        "Directory",
-    )
-
-
 def get_name(input_message: str, default_name: str, label: str) -> str:
     for _ in range(MAX_NAME_ATTEMPTS):
         response = input(input_message).strip()
@@ -121,7 +112,11 @@ def get_build_and_proton_dir(
 ) -> Tuple[str, str]:
     """Prompt for both custom names before the build starts, with defaults as fallbacks."""
     build_name = get_name("Please enter the build name: ", default_build_name, "Build")
-    proton_dir = get_proton_dir(default_dir_name)
+    proton_dir = get_name(
+        "Please enter the directory name: ",
+        default_dir_name,
+        "Directory",
+    )
     return build_name, proton_dir
 
 
@@ -169,10 +164,11 @@ def main() -> None:
 
     sleep(POST_CLONE_DELAY_SECONDS)
 
-    prompt_for_custom_names = lambda: get_build_and_proton_dir(
-        DEFAULT_BUILD_NAME,
-        DEFAULT_PROTON_DIR,
-    )
+    def prompt_for_custom_names() -> Tuple[str, str]:
+        return get_build_and_proton_dir(
+            DEFAULT_BUILD_NAME,
+            DEFAULT_PROTON_DIR,
+        )
     build_name, proton_dir = user_query(
         input_message="Would you like to give Proton custom build and directory names? [Y/n] ",
         case_y=prompt_for_custom_names,
