@@ -38,6 +38,7 @@ class MainTests(unittest.TestCase):
 
     def test_main_passes_selected_build_name_to_configure(self) -> None:
         def fake_exists(path: str) -> bool:
+            """Pretend only the final compatibilitytools.d target already exists."""
             return path != "Proton" and path.endswith("/custom-dir")
 
         with (

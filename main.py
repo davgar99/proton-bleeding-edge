@@ -44,8 +44,8 @@ def user_query(
     fallback_message: str = "Too many invalid attempts.",
     fallback_script: Callable[[], object] = do_nothing,
 ):
-    attempts = 0
-    while max_attempts == 0 or attempts < max_attempts:
+    attempt_count = 0
+    while max_attempts == 0 or attempt_count < max_attempts:
         response = input(input_message)
         match response.strip().lower():
             case "y":
@@ -60,8 +60,8 @@ def user_query(
         if result != RETRY:
             return result
 
-        attempts += 1
-        if max_attempts == 0 or attempts < max_attempts:
+        attempt_count += 1
+        if max_attempts == 0 or attempt_count < max_attempts:
             print(fail_message)
 
     print(fallback_message)
@@ -169,14 +169,15 @@ def main() -> None:
 
     sleep(POST_CLONE_DELAY_SECONDS)
 
+    prompt_for_custom_names = lambda: get_build_and_proton_dir(
+        DEFAULT_BUILD_NAME,
+        DEFAULT_PROTON_DIR,
+    )
     build_name, proton_dir = user_query(
         input_message="Would you like to give Proton custom build and directory names? [Y/n] ",
-        case_y=lambda: get_build_and_proton_dir(DEFAULT_BUILD_NAME, DEFAULT_PROTON_DIR),
+        case_y=prompt_for_custom_names,
         case_n=lambda: (DEFAULT_BUILD_NAME, DEFAULT_PROTON_DIR),
-        case_empty=lambda: get_build_and_proton_dir(
-            DEFAULT_BUILD_NAME,
-            DEFAULT_PROTON_DIR,
-        ),
+        case_empty=prompt_for_custom_names,
         case_=retry_query,
         max_attempts=MAX_NAME_ATTEMPTS,
         fallback_message=(
