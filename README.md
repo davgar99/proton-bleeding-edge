@@ -38,7 +38,7 @@ The script can:
 ### Build Proton
 
 > **Warning**
-> Compilation time can vary a lot depending on your hardware. On slower systems it may take much longer, while on faster modern CPUs it can finish in around a minute.
+> Compilation time can vary a lot depending on your hardware. Expect anything from roughly 1 to 20 minutes in typical cases, with slower systems sometimes taking even longer.
 
 ```bash
 python main.py

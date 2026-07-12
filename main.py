@@ -19,7 +19,7 @@ PROTON_DIST_DIRECTORY = "dist"
 STEAM_COMPATIBILITYTOOLS_DIRECTORY = ".steam/root/compatibilitytools.d"
 NAME_PATTERN = re.compile(r"[A-Za-z0-9._-]+")
 
-Callback = Callable[[], Any]
+PromptCallback = Callable[[], Any]
 
 
 def no_action() -> None:
@@ -32,19 +32,18 @@ def retry_action() -> object:
 
 def user_query(
     input_message: str,
-    case_y: Callback = no_action,
-    case_n: Callback = no_action,
-    case_empty: Callback = no_action,
-    case_other: Callback = retry_action,
+    case_y: PromptCallback = no_action,
+    case_n: PromptCallback = no_action,
+    case_empty: PromptCallback = no_action,
+    case_other: PromptCallback = retry_action,
     max_attempts: int = 1,
     fail_message: str = "Invalid input, try again.",
     fallback_message: str = "Too many invalid attempts.",
-    fallback_action: Callback = no_action,
+    fallback_action: PromptCallback = no_action,
 ) -> Any:
-    attempt = 1
-    while max_attempts == 0 or attempt <= max_attempts:
+    attempt = 0
+    while max_attempts == 0 or attempt < max_attempts:
         response = input(input_message)
-        attempt += 1
 
         match response.strip().lower():
             case "y":
@@ -59,7 +58,9 @@ def user_query(
         if result != RETRY:
             return result
 
-        if max_attempts == 0 or attempt <= max_attempts:
+        attempt += 1
+
+        if max_attempts == 0 or attempt < max_attempts:
             print(fail_message)
 
     print(fallback_message)
@@ -134,7 +135,7 @@ def prepare_proton_source(workspace_dir: Path) -> Path:
             check=True,
         )
         local_revision = get_git_revision(source_dir, "@")
-        remote_revision = get_git_revision(source_dir, "@{u}")
+        remote_revision = get_git_revision(source_dir, f"origin/{GIT_BRANCH}")
 
         if local_revision != remote_revision:
             print("Updating your local repository...")
