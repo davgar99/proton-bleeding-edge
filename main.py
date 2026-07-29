@@ -2,6 +2,7 @@ import os
 import re
 import subprocess
 from time import sleep
+from typing import Any, Callable
 
 # -- Global Variables --
 
@@ -14,14 +15,14 @@ def none():
 
 def user_query(
         input_message: str,
-        case_y: function = lambda: none(), 
-        case_n: function = lambda: none(),
-        case_empty: function = lambda: none(),
-        case_: function = lambda: RETRY,
+        case_y: Callable[[], Any] = lambda: none(), 
+        case_n: Callable[[], Any] = lambda: none(),
+        case_empty: Callable[[], Any] = lambda: none(),
+        case_: Callable[[], Any] = lambda: RETRY,
         max_attempts: int = 1,
         fail_message: str = "Invalid input, try again.",
         fallback_message: str = "Too many invalid attempts.",
-        fallback_script: function = lambda: none()
+        fallback_script: Callable[[], Any] = lambda: none()
         ):
     attempt = 1
     while max_attempts == 0 or attempt <= max_attempts:
@@ -67,8 +68,7 @@ def get_proton_dir(default_dir_name: str) -> str:
         else:
             return response
     
-    print(f"Too many invalid attempts.\n\
-          Using default name '{default_dir_name}'.")
+    print(f"Too many invalid attempts.\nUsing default name '{default_dir_name}'.")
     sleep(1)
     return(default_dir_name)
 
@@ -96,7 +96,7 @@ def main() -> None:
         # Fetch remote repository
         subprocess.run(["git", "fetch", "--recurse-submodules"], check=True)
         local = subprocess.check_output(["git", "rev-parse", "@"]).strip()
-        remote = subprocess.check_output(["git", "rev-parse", "@"]).strip()
+        remote = subprocess.check_output(["git", "rev-parse", "@{u}"]).strip()
 
         if local != remote:
             print("Updating your local repository...")
@@ -111,18 +111,9 @@ def main() -> None:
         print("Repo has been cloned successfully.")
 
     sleep(2)
-    
-    # Build Proton
-    os.makedirs("build", exist_ok=True)
-    os.chdir("build")
-    subprocess.run(["../configure.sh", "--enable-ccache", "--build-name=my_build"])
 
-    _JOBS = os.cpu_count() or 1
-    print(f"Creating Jobs: {_JOBS} created")
-    subprocess.run(["make", f"-j{_JOBS}", "redist"], check=True)
-
-    print("Proton has finished compiling.")
-
+    # Ask for the output name up front, so it can be used both as the Proton
+    # build name (what Steam displays) and as the compatibilitytools.d directory name
     proton_dir = user_query(
         input_message = "Would you like to give Proton a custom directory name? [Y/n] ",
         case_y = lambda: get_proton_dir(_PROTON_DIR),
@@ -133,6 +124,17 @@ def main() -> None:
         fallback_message = f"Too many invalid attempts.\nUsing default name '{_PROTON_DIR}'.",
         fallback_script = lambda: _PROTON_DIR
         )
+
+    # Build Proton
+    os.makedirs("build", exist_ok=True)
+    os.chdir("build")
+    subprocess.run(["../configure.sh", "--enable-ccache", f"--build-name={proton_dir}"], check=True)
+
+    _JOBS = os.cpu_count() or 1
+    print(f"Creating Jobs: {_JOBS} created")
+    subprocess.run(["make", f"-j{_JOBS}", "redist"], check=True)
+
+    print("Proton has finished compiling.")
 
     proton_dir_exists = os.path.exists(f"{_HOME_DIR}/.steam/root/compatibilitytools.d/{proton_dir}")
 
