@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 import subprocess
 from time import sleep
 from typing import Any, Callable
@@ -15,7 +16,7 @@ def none():
 
 def user_query(
         input_message: str,
-        case_y: Callable[[], Any] = lambda: none(), 
+        case_y: Callable[[], Any] = lambda: none(),
         case_n: Callable[[], Any] = lambda: none(),
         case_empty: Callable[[], Any] = lambda: none(),
         case_: Callable[[], Any] = lambda: RETRY,
@@ -37,10 +38,10 @@ def user_query(
                 result = case_empty()
             case _:
                 result = case_()
-        
+
         if result != RETRY:
             return result
-        
+
         if max_attempts == 0 or attempt <= max_attempts:
             print(fail_message)
     print(fallback_message)
@@ -67,15 +68,23 @@ def get_proton_dir(default_dir_name: str) -> str:
             pass
         else:
             return response
-    
+
     print(f"Too many invalid attempts.\nUsing default name '{default_dir_name}'.")
     sleep(1)
     return(default_dir_name)
 
 def move_proton_dir(home_dir: str, proton_dir: str, proton_dir_exists: bool) -> None:
+    compatibility_tools_dir = os.path.join(home_dir, ".steam", "root", "compatibilitytools.d")
+    target_dir = os.path.join(compatibility_tools_dir, proton_dir)
+
+    # Steam does not always create compatibilitytools.d until a custom tool is
+    # installed, so make sure the destination exists before copying Proton.
+    os.makedirs(compatibility_tools_dir, exist_ok=True)
+
     if proton_dir_exists:
-        subprocess.run(["rm", "-rf", f"{home_dir}/.steam/root/compatibilitytools.d/{proton_dir}"], check=True)
-    subprocess.run(["cp", "-r", "dist", f"{home_dir}/.steam/root/compatibilitytools.d/{proton_dir}"], check=True)
+        shutil.rmtree(target_dir)
+
+    shutil.copytree("dist", target_dir)
     print(f"Proton has been moved to your Steam compatibilitytools.d directory as {proton_dir}.")
 
 # -- Main function --
@@ -136,7 +145,9 @@ def main() -> None:
 
     print("Proton has finished compiling.")
 
-    proton_dir_exists = os.path.exists(f"{_HOME_DIR}/.steam/root/compatibilitytools.d/{proton_dir}")
+    proton_dir_exists = os.path.exists(
+        os.path.join(_HOME_DIR, ".steam", "root", "compatibilitytools.d", proton_dir)
+    )
 
     if proton_dir_exists:
         user_query(
