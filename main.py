@@ -74,15 +74,19 @@ def get_proton_dir(default_dir_name: str) -> str:
     return(default_dir_name)
 
 def move_proton_dir(home_dir: str, proton_dir: str, proton_dir_exists: bool) -> None:
+    if not is_valid_dir_name(proton_dir):
+        raise ValueError("Invalid Proton directory name")
+
     compatibility_tools_dir = os.path.realpath(
         os.path.join(home_dir, ".steam", "root", "compatibilitytools.d")
     )
-    target_dir = os.path.realpath(os.path.join(compatibility_tools_dir, proton_dir))
+    target_dir = os.path.join(compatibility_tools_dir, proton_dir)
 
-    # Never let a custom name escape compatibilitytools.d, including through
-    # special path components or a pre-existing symlink.
-    if os.path.dirname(target_dir) != compatibility_tools_dir:
-        raise ValueError("Invalid Proton install path outside compatibilitytools.d")
+    # The final path component must remain the requested directory name.
+    # Resolving it with realpath() would follow an existing symlink and could
+    # make an overwrite delete or replace the symlink target instead.
+    if os.path.islink(target_dir):
+        raise ValueError("Refusing to overwrite a symlink in compatibilitytools.d")
 
     # Steam does not always create compatibilitytools.d until a custom tool is
     # installed, so make sure the destination exists before copying Proton.
@@ -152,7 +156,7 @@ def main() -> None:
 
     print("Proton has finished compiling.")
 
-    proton_dir_exists = os.path.exists(
+    proton_dir_exists = os.path.lexists(
         os.path.join(_HOME_DIR, ".steam", "root", "compatibilitytools.d", proton_dir)
     )
 
