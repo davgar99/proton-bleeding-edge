@@ -2,6 +2,7 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 from time import sleep
 from typing import Any, Callable
 
@@ -73,26 +74,79 @@ def get_proton_dir(default_dir_name: str) -> str:
     sleep(1)
     return(default_dir_name)
 
-def move_proton_dir(home_dir: str, proton_dir: str, proton_dir_exists: bool) -> None:
+def move_proton_dir(home_dir: str, proton_dir: str) -> None:
+    if not is_valid_dir_name(proton_dir):
+        raise ValueError("Invalid Proton directory name")
+
     compatibility_tools_dir = os.path.realpath(
         os.path.join(home_dir, ".steam", "root", "compatibilitytools.d")
     )
-    target_dir = os.path.realpath(os.path.join(compatibility_tools_dir, proton_dir))
+    target_dir = os.path.join(compatibility_tools_dir, proton_dir)
 
-    # Never let a custom name escape compatibilitytools.d, including through
-    # special path components or a pre-existing symlink.
-    if os.path.dirname(target_dir) != compatibility_tools_dir:
-        raise ValueError("Invalid Proton install path outside compatibilitytools.d")
+    # Never follow or relocate a caller-selected final-component symlink. This
+    # check intentionally happens before any backup, rename, or removal work.
+    if os.path.lexists(target_dir) and os.path.islink(target_dir):
+        raise ValueError("Refusing to overwrite a symlink in compatibilitytools.d")
 
     # Steam does not always create compatibilitytools.d until a custom tool is
-    # installed, so make sure the destination exists before copying Proton.
+    # installed, so make sure the trusted parent exists before staging a copy.
     os.makedirs(compatibility_tools_dir, exist_ok=True)
 
-    if proton_dir_exists:
-        shutil.rmtree(target_dir)
+    # Re-check after creating the parent in case the destination appeared in
+    # the meantime. Existing non-directory entries are not safe overwrite targets.
+    if os.path.lexists(target_dir) and os.path.islink(target_dir):
+        raise ValueError("Refusing to overwrite a symlink in compatibilitytools.d")
+    if os.path.lexists(target_dir) and not os.path.isdir(target_dir):
+        raise ValueError("Refusing to overwrite a non-directory in compatibilitytools.d")
 
-    shutil.copytree("dist", target_dir)
-    print(f"Proton has been moved to your Steam compatibilitytools.d directory as {proton_dir}.")
+    temp_dir = tempfile.mkdtemp(prefix=f".{proton_dir}.new-", dir=compatibility_tools_dir)
+    backup_dir: str | None = None
+
+    try:
+        # Build the complete replacement before touching a working install. If
+        # this copy fails (disk full, interruption, permission error), the old
+        # Proton directory remains untouched.
+        shutil.copytree("dist", temp_dir, dirs_exist_ok=True)
+
+        if os.path.lexists(target_dir):
+            if os.path.islink(target_dir):
+                raise ValueError("Refusing to overwrite a symlink in compatibilitytools.d")
+            if not os.path.isdir(target_dir):
+                raise ValueError("Refusing to overwrite a non-directory in compatibilitytools.d")
+
+            # mkdtemp gives us a collision-resistant sibling name. Remove the
+            # empty placeholder so the existing directory can be atomically
+            # renamed into that path on the same filesystem.
+            backup_dir = tempfile.mkdtemp(prefix=f".{proton_dir}.old-", dir=compatibility_tools_dir)
+            os.rmdir(backup_dir)
+            os.rename(target_dir, backup_dir)
+
+        try:
+            # Do not replace anything that appeared unexpectedly after the
+            # backup step. This keeps the operation fail-closed under races.
+            if os.path.lexists(target_dir):
+                raise FileExistsError(f"Install destination appeared during replacement: {target_dir}")
+            os.rename(temp_dir, target_dir)
+            temp_dir = ""
+        except Exception:
+            if backup_dir and os.path.lexists(backup_dir) and not os.path.lexists(target_dir):
+                os.rename(backup_dir, target_dir)
+                backup_dir = None
+            raise
+
+        if backup_dir and os.path.lexists(backup_dir):
+            try:
+                shutil.rmtree(backup_dir)
+                backup_dir = None
+            except OSError as exc:
+                # The new install is already active. Leaving the old backup is
+                # safer than treating cleanup failure as a failed installation.
+                print(f"Warning: Proton was installed, but old backup cleanup failed: {exc}")
+
+        print(f"Proton has been moved to your Steam compatibilitytools.d directory as {proton_dir}.")
+    finally:
+        if temp_dir and os.path.lexists(temp_dir):
+            shutil.rmtree(temp_dir, ignore_errors=True)
 
 # -- Main function --
 
@@ -152,22 +206,22 @@ def main() -> None:
 
     print("Proton has finished compiling.")
 
-    proton_dir_exists = os.path.exists(
+    proton_dir_exists = os.path.lexists(
         os.path.join(_HOME_DIR, ".steam", "root", "compatibilitytools.d", proton_dir)
     )
 
     if proton_dir_exists:
         user_query(
             input_message = f"The directory {proton_dir} already exists in Steam compatibilitytools.d. Would you like to overwrite it? [Y/n] ",
-            case_y = lambda: move_proton_dir(_HOME_DIR, proton_dir, proton_dir_exists),
-            case_empty = lambda: move_proton_dir(_HOME_DIR, proton_dir, proton_dir_exists),
+            case_y = lambda: move_proton_dir(_HOME_DIR, proton_dir),
+            case_empty = lambda: move_proton_dir(_HOME_DIR, proton_dir),
             max_attempts = 3
             )
     else:
         user_query(
             input_message = "Would you like this script to move the file over to your Steam compatibilitytools.d directory? [Y/n] ",
-            case_y = lambda: move_proton_dir(_HOME_DIR, proton_dir, proton_dir_exists),
-            case_empty = lambda: move_proton_dir(_HOME_DIR, proton_dir, proton_dir_exists),
+            case_y = lambda: move_proton_dir(_HOME_DIR, proton_dir),
+            case_empty = lambda: move_proton_dir(_HOME_DIR, proton_dir),
             max_attempts = 3
             )
 
