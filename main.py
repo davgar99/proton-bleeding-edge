@@ -170,7 +170,7 @@ def main() -> None:
 
         if local != remote:
             print("Updating your local repository...")
-            subprocess.run(["git", "pull", "--recurse-submodules"], check=True)
+            subprocess.run(["git", "pull", "--ff-only", "--recurse-submodules"], check=True)
         else:
             print("Your local repository is on the latest version already.")
     else:
