@@ -54,6 +54,78 @@ def raise_valueerror(msg):
 def is_valid_dir_name(dir_name: str) -> bool:
     return dir_name not in {".", ".."} and bool(re.fullmatch(r"[A-Za-z0-9._-]+", dir_name))
 
+def prepare_proton_repository(repo_url: str, branch: str) -> None:
+    proton_path = "Proton"
+    if os.path.lexists(proton_path):
+        if os.path.islink(proton_path) or not os.path.isdir(proton_path):
+            raise RuntimeError("Existing Proton path must be a real directory, not a file or symlink.")
+
+        try:
+            inside_worktree = subprocess.check_output(
+                ["git", "-C", proton_path, "rev-parse", "--is-inside-work-tree"],
+                text=True,
+            ).strip()
+        except subprocess.CalledProcessError as exc:
+            raise RuntimeError("Existing Proton directory is not a usable Git checkout.") from exc
+        if inside_worktree != "true":
+            raise RuntimeError("Existing Proton directory is not a usable Git checkout.")
+
+        dirty = subprocess.check_output(
+            ["git", "-C", proton_path, "status", "--porcelain"],
+            text=True,
+        ).strip()
+        if dirty:
+            raise RuntimeError("Existing Proton checkout has uncommitted changes; commit or stash them before building.")
+
+        current_branch = subprocess.check_output(
+            ["git", "-C", proton_path, "branch", "--show-current"],
+            text=True,
+        ).strip()
+        if current_branch != branch:
+            raise RuntimeError(
+                f"Existing Proton checkout is on branch '{current_branch or '(detached HEAD)'}', expected '{branch}'."
+            )
+
+        print("Proton directory already exists. Fetching remote repository:")
+        subprocess.run(
+            ["git", "-C", proton_path, "fetch", "origin", branch, "--recurse-submodules"],
+            check=True,
+        )
+        local = subprocess.check_output(["git", "-C", proton_path, "rev-parse", "HEAD"], text=True).strip()
+        remote = subprocess.check_output(["git", "-C", proton_path, "rev-parse", "FETCH_HEAD"], text=True).strip()
+
+        ancestry = subprocess.run(
+            ["git", "-C", proton_path, "merge-base", "--is-ancestor", local, remote],
+            check=False,
+        )
+        if ancestry.returncode != 0:
+            raise RuntimeError(
+                f"Existing Proton checkout has commits not present on origin/{branch}; refusing to overwrite divergent history."
+            )
+
+        if local != remote:
+            print("Updating your local repository...")
+            subprocess.run(["git", "-C", proton_path, "merge", "--ff-only", "FETCH_HEAD"], check=True)
+        else:
+            print("Your local repository is on the latest version already.")
+
+        # Fetching submodules does not update their checked-out commits. Keep
+        # the working tree aligned with the exact superproject revision before
+        # configure/build so stale submodules cannot produce a mixed build.
+        subprocess.run(
+            ["git", "-C", proton_path, "submodule", "update", "--init", "--recursive"],
+            check=True,
+        )
+    else:
+        print("Cloning the Proton repository...")
+        subprocess.run(
+            ["git", "clone", "-b", branch, "--recurse-submodules", repo_url],
+            check=True,
+        )
+        print("Repo has been cloned successfully.")
+
+    os.chdir(proton_path)
+
 # -- Primary functions --
 
 def get_proton_dir(default_dir_name: str) -> str:
@@ -157,28 +229,7 @@ def main() -> None:
     _PROTON_DIR: str = "proton-bleeding-edge"
     _HOME_DIR: str = os.path.expanduser("~")
 
-    # Check if the Proton directory already exists
-    if os.path.exists("Proton"):
-        # If it exists, just update the repository and submodules
-        print("Proton directory already exists. Fetching remote repository:")
-        os.chdir("Proton")
-
-        # Fetch remote repository
-        subprocess.run(["git", "fetch", "--recurse-submodules"], check=True)
-        local = subprocess.check_output(["git", "rev-parse", "@"]).strip()
-        remote = subprocess.check_output(["git", "rev-parse", "@{u}"]).strip()
-
-        if local != remote:
-            print("Updating your local repository...")
-            subprocess.run(["git", "pull", "--ff-only", "--recurse-submodules"], check=True)
-        else:
-            print("Your local repository is on the latest version already.")
-    else:
-        # Clone the Proton repository and checkout the bleeding-edge branch
-        print("Cloning the Proton repository...")
-        subprocess.run(["git", "clone", "-b", _GIT_BRANCH, "--recurse-submodules", _GIT_REPO], check=True)
-        os.chdir("Proton")
-        print("Repo has been cloned successfully.")
+    prepare_proton_repository(_GIT_REPO, _GIT_BRANCH)
 
     sleep(2)
 
