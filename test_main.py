@@ -2,9 +2,85 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import main
+
+
+class PrepareProtonRepositoryTests(unittest.TestCase):
+    def test_rejects_symlink_checkout(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            work_dir = root / "work"
+            work_dir.mkdir()
+            real_checkout = root / "real-proton"
+            real_checkout.mkdir()
+            (work_dir / "Proton").symlink_to(real_checkout, target_is_directory=True)
+
+            old_cwd = os.getcwd()
+            os.chdir(work_dir)
+            try:
+                with self.assertRaisesRegex(RuntimeError, "file or symlink"):
+                    main.prepare_proton_repository("https://example.invalid/Proton.git", "bleeding-edge")
+            finally:
+                os.chdir(old_cwd)
+
+    def test_rejects_dirty_checkout(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            work_dir = Path(temp_dir)
+            (work_dir / "Proton").mkdir()
+
+            old_cwd = os.getcwd()
+            os.chdir(work_dir)
+            try:
+                with patch("main.subprocess.check_output", side_effect=["true\n", " M local.txt\n"]):
+                    with self.assertRaisesRegex(RuntimeError, "uncommitted changes"):
+                        main.prepare_proton_repository("https://example.invalid/Proton.git", "bleeding-edge")
+            finally:
+                os.chdir(old_cwd)
+
+    def test_rejects_wrong_branch(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            work_dir = Path(temp_dir)
+            (work_dir / "Proton").mkdir()
+
+            old_cwd = os.getcwd()
+            os.chdir(work_dir)
+            try:
+                with patch("main.subprocess.check_output", side_effect=["true\n", "", "stable\n"]):
+                    with self.assertRaisesRegex(RuntimeError, "expected 'bleeding-edge'"):
+                        main.prepare_proton_repository("https://example.invalid/Proton.git", "bleeding-edge")
+            finally:
+                os.chdir(old_cwd)
+
+    def test_fast_forward_update_synchronizes_submodules(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            work_dir = Path(temp_dir)
+            (work_dir / "Proton").mkdir()
+            successful = MagicMock(returncode=0)
+
+            old_cwd = os.getcwd()
+            os.chdir(work_dir)
+            try:
+                with (
+                    patch(
+                        "main.subprocess.check_output",
+                        side_effect=["true\n", "", "bleeding-edge\n", "local-sha\n", "remote-sha\n"],
+                    ),
+                    patch("main.subprocess.run", return_value=successful) as run,
+                ):
+                    main.prepare_proton_repository("https://example.invalid/Proton.git", "bleeding-edge")
+            finally:
+                os.chdir(old_cwd)
+
+            run.assert_any_call(
+                ["git", "-C", "Proton", "merge", "--ff-only", "FETCH_HEAD"],
+                check=True,
+            )
+            run.assert_any_call(
+                ["git", "-C", "Proton", "submodule", "update", "--init", "--recursive"],
+                check=True,
+            )
 
 
 class MoveProtonDirTests(unittest.TestCase):
