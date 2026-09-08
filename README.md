@@ -9,22 +9,23 @@ I do plan on improving the script further over time.
 ## Requirements
 
 - Linux
-
 - Python 3
-
 - Git
-
 - Docker or Podman
-
 - Build tools such as make and GCC
 
 ## Usage
 
-#### Warning: Compilation time can take up to 20 minutes depending on your CPU, on modern ones it takes around 1 minute.
+> [!WARNING]
+> Compilation time varies significantly by CPU and available build cache.
 
 ```bash
 python main.py
 ```
+
+The script clones Valve Proton's `bleeding-edge` branch into `./Proton` on first use. If that directory already exists, it is reused only when it is a real Git checkout on the `bleeding-edge` branch with a clean worktree and history that can fast-forward to the fetched branch. The script refuses to overwrite divergent or locally modified checkouts.
+
+Before configuring a build, the existing checkout is fast-forwarded when needed and its Git submodules are synchronized to the exact commits recorded by Proton. This avoids accidentally compiling a mixture of current Proton sources and stale submodules.
 
 ## Disclaimer
 
