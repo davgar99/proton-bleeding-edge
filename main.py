@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 from time import sleep
 from typing import Any, Callable
+from urllib.parse import urlparse
 
 # -- Global Variables --
 
@@ -54,6 +55,21 @@ def raise_valueerror(msg):
 def is_valid_dir_name(dir_name: str) -> bool:
     return dir_name not in {".", ".."} and bool(re.fullmatch(r"[A-Za-z0-9._-]+", dir_name))
 
+def canonical_git_remote(url: str) -> str:
+    """Normalize common Git remote URL forms for repository identity checks."""
+    value = url.strip().rstrip("/")
+    scp_style = re.fullmatch(r"git@([^:]+):(.+)", value)
+    if scp_style:
+        host, path = scp_style.groups()
+    else:
+        parsed = urlparse(value)
+        if not parsed.hostname:
+            return value.removesuffix(".git")
+        host = parsed.hostname
+        path = parsed.path.lstrip("/")
+
+    return f"{host.lower()}/{path.removesuffix('.git')}"
+
 def prepare_proton_repository(repo_url: str, branch: str) -> None:
     proton_path = "Proton"
     if os.path.lexists(proton_path):
@@ -84,6 +100,15 @@ def prepare_proton_repository(repo_url: str, branch: str) -> None:
         if current_branch != branch:
             raise RuntimeError(
                 f"Existing Proton checkout is on branch '{current_branch or '(detached HEAD)'}', expected '{branch}'."
+            )
+
+        origin_url = subprocess.check_output(
+            ["git", "-C", proton_path, "remote", "get-url", "origin"],
+            text=True,
+        ).strip()
+        if canonical_git_remote(origin_url) != canonical_git_remote(repo_url):
+            raise RuntimeError(
+                f"Existing Proton checkout origin '{origin_url}' does not match the expected repository '{repo_url}'."
             )
 
         print("Proton directory already exists. Fetching remote repository:")
@@ -119,7 +144,7 @@ def prepare_proton_repository(repo_url: str, branch: str) -> None:
     else:
         print("Cloning the Proton repository...")
         subprocess.run(
-            ["git", "clone", "-b", branch, "--recurse-submodules", repo_url],
+            ["git", "clone", "-b", branch, "--recurse-submodules", repo_url, proton_path],
             check=True,
         )
         print("Repo has been cloned successfully.")
