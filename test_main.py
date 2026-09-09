@@ -65,7 +65,14 @@ class PrepareProtonRepositoryTests(unittest.TestCase):
                 with (
                     patch(
                         "main.subprocess.check_output",
-                        side_effect=["true\n", "", "bleeding-edge\n", "local-sha\n", "remote-sha\n"],
+                        side_effect=[
+                            "true\n",
+                            "",
+                            "bleeding-edge\n",
+                            "https://example.invalid/Proton.git\n",
+                            "local-sha\n",
+                            "remote-sha\n",
+                        ],
                     ),
                     patch("main.subprocess.run", return_value=successful) as run,
                 ):
