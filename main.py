@@ -70,6 +70,19 @@ def canonical_git_remote(url: str) -> str:
 
     return f"{host.lower()}/{path.removesuffix('.git')}"
 
+def get_origin_url(proton_path: str) -> str:
+    """Return the checkout origin URL with a controlled error for missing remotes."""
+    try:
+        return subprocess.check_output(
+            ["git", "-C", proton_path, "remote", "get-url", "origin"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except subprocess.CalledProcessError as exc:
+        raise RuntimeError(
+            "Existing Proton checkout has no usable 'origin' remote; add the expected Proton origin or remove the checkout."
+        ) from exc
+
 def prepare_proton_repository(repo_url: str, branch: str) -> None:
     proton_path = "Proton"
     if os.path.lexists(proton_path):
@@ -102,10 +115,7 @@ def prepare_proton_repository(repo_url: str, branch: str) -> None:
                 f"Existing Proton checkout is on branch '{current_branch or '(detached HEAD)'}', expected '{branch}'."
             )
 
-        origin_url = subprocess.check_output(
-            ["git", "-C", proton_path, "remote", "get-url", "origin"],
-            text=True,
-        ).strip()
+        origin_url = get_origin_url(proton_path)
         if canonical_git_remote(origin_url) != canonical_git_remote(repo_url):
             raise RuntimeError(
                 f"Existing Proton checkout origin '{origin_url}' does not match the expected repository '{repo_url}'."
