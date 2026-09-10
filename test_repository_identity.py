@@ -1,4 +1,5 @@
 import os
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -34,6 +35,32 @@ class RepositoryIdentityTests(unittest.TestCase):
                     ],
                 ):
                     with self.assertRaisesRegex(RuntimeError, "does not match the expected repository"):
+                        main.prepare_proton_repository(
+                            "https://github.com/ValveSoftware/Proton.git",
+                            "bleeding-edge",
+                        )
+            finally:
+                os.chdir(old_cwd)
+
+    def test_missing_origin_uses_controlled_error(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            work_dir = Path(temp_dir)
+            (work_dir / "Proton").mkdir()
+
+            old_cwd = os.getcwd()
+            os.chdir(work_dir)
+            try:
+                missing_origin = subprocess.CalledProcessError(2, ["git", "remote", "get-url", "origin"])
+                with patch(
+                    "main.subprocess.check_output",
+                    side_effect=[
+                        "true\n",
+                        "",
+                        "bleeding-edge\n",
+                        missing_origin,
+                    ],
+                ):
+                    with self.assertRaisesRegex(RuntimeError, "no usable 'origin' remote"):
                         main.prepare_proton_repository(
                             "https://github.com/ValveSoftware/Proton.git",
                             "bleeding-edge",
