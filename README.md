@@ -27,6 +27,14 @@ The script clones Valve Proton's `bleeding-edge` branch into `./Proton` on first
 
 Before configuring a build, the existing checkout is fast-forwarded when needed and its Git submodules are synchronized to the exact commits recorded by Proton. This avoids accidentally compiling a mixture of current Proton sources and stale submodules.
 
+By default, the build uses all CPUs detected by Python. To limit parallelism on memory-constrained or thermally limited systems, set `PROTON_BUILD_JOBS` to a positive integer:
+
+```bash
+PROTON_BUILD_JOBS=4 python main.py
+```
+
+Invalid values such as `0`, negative numbers, or non-numeric strings are rejected instead of being passed to `make`.
+
 ## Disclaimer
 
 This is an unofficial learning project. It is not affiliated with Valve, Steam, or Proton. All credit goes to Valve.
