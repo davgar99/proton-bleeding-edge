@@ -7,6 +7,8 @@ from time import sleep
 from typing import Any, Callable
 from urllib.parse import urlparse
 
+from build_config import resolve_build_jobs
+
 # -- Global Variables --
 
 RETRY = object()
@@ -286,7 +288,7 @@ def main() -> None:
     os.chdir("build")
     subprocess.run(["../configure.sh", "--enable-ccache", f"--build-name={proton_dir}"], check=True)
 
-    _JOBS = os.cpu_count() or 1
+    _JOBS = resolve_build_jobs()
     print(f"Creating Jobs: {_JOBS} created")
     subprocess.run(["make", f"-j{_JOBS}", "redist"], check=True)
 
