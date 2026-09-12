@@ -18,6 +18,10 @@ class ResolveBuildJobsTests(unittest.TestCase):
         with patch.dict(os.environ, {"PROTON_BUILD_JOBS": "3"}, clear=True):
             self.assertEqual(resolve_build_jobs(), 3)
 
+    def test_auto_override_uses_detected_cpu_count(self) -> None:
+        with patch("build_config.os.cpu_count", return_value=12):
+            self.assertEqual(resolve_build_jobs(" auto "), 12)
+
     def test_blank_override_uses_default(self) -> None:
         with patch.dict(os.environ, {"PROTON_BUILD_JOBS": "  "}, clear=True), patch("build_config.os.cpu_count", return_value=6):
             self.assertEqual(resolve_build_jobs(), 6)
