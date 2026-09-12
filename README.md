@@ -33,7 +33,7 @@ By default, the build uses all CPUs detected by Python. To limit parallelism on 
 PROTON_BUILD_JOBS=4 python main.py
 ```
 
-Invalid values such as `0`, negative numbers, or non-numeric strings are rejected instead of being passed to `make`.
+You can also set `PROTON_BUILD_JOBS=auto` explicitly to use the detected CPU count, which is useful for scripts or shared configuration that switch between capped and automatic parallelism. Invalid values such as `0`, negative numbers, or other non-numeric strings are rejected instead of being passed to `make`.
 
 ## Disclaimer
 
