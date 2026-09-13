@@ -17,6 +17,12 @@ class RepositoryIdentityTests(unittest.TestCase):
         self.assertEqual(main.canonical_git_remote(https), main.canonical_git_remote(ssh))
         self.assertEqual(main.canonical_git_remote(https), main.canonical_git_remote(ssh_url))
 
+    def test_canonical_git_remote_accepts_github_path_casing(self) -> None:
+        expected = "https://github.com/ValveSoftware/Proton.git"
+        differently_cased = "git@github.com:valvesoftware/PROTON.git"
+
+        self.assertEqual(main.canonical_git_remote(expected), main.canonical_git_remote(differently_cased))
+
     def test_rejects_checkout_from_unexpected_origin(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             work_dir = Path(temp_dir)
