@@ -2,6 +2,14 @@ import os
 
 
 def _detected_jobs() -> int:
+    """Return CPUs available to this process, respecting Linux affinity limits."""
+    try:
+        affinity = os.sched_getaffinity(0)
+    except (AttributeError, OSError):
+        affinity = None
+
+    if affinity:
+        return len(affinity)
     return os.cpu_count() or 1
 
 
