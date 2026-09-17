@@ -27,13 +27,15 @@ The script clones Valve Proton's `bleeding-edge` branch into `./Proton` on first
 
 Before configuring a build, the existing checkout is fast-forwarded when needed and its Git submodules are synchronized to the exact commits recorded by Proton. This avoids accidentally compiling a mixture of current Proton sources and stale submodules.
 
-By default, the build uses all CPUs detected by Python. To limit parallelism on memory-constrained or thermally limited systems, set `PROTON_BUILD_JOBS` to a positive integer:
+By default, the build uses all CPUs available to the process. On Linux this respects CPU-affinity and cpuset limits, so running the script inside a constrained container or task does not accidentally start jobs for host CPUs it cannot use. If affinity information is unavailable, the script falls back to Python's detected CPU count.
+
+To limit parallelism further on memory-constrained or thermally limited systems, set `PROTON_BUILD_JOBS` to a positive integer:
 
 ```bash
 PROTON_BUILD_JOBS=4 python main.py
 ```
 
-You can also set `PROTON_BUILD_JOBS=auto` explicitly to use the detected CPU count, which is useful for scripts or shared configuration that switch between capped and automatic parallelism. Invalid values such as `0`, negative numbers, or other non-numeric strings are rejected instead of being passed to `make`.
+You can also set `PROTON_BUILD_JOBS=auto` explicitly to use the automatically detected available CPU count, which is useful for scripts or shared configuration that switch between capped and automatic parallelism. Invalid values such as `0`, negative numbers, or other non-numeric strings are rejected instead of being passed to `make`.
 
 ## Disclaimer
 
