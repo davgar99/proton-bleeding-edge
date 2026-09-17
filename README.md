@@ -51,13 +51,15 @@ Before configuring a build, the checkout is fast-forwarded when needed and its G
 
 ## Build parallelism
 
-By default, the build uses all CPUs detected by Python. To reduce memory use, heat, or system load, set `PROTON_BUILD_JOBS` to a positive integer:
+By default, the build uses all CPUs available to the process. On Linux this respects CPU-affinity and cpuset limits, so running the script inside a constrained container or task does not accidentally start jobs for host CPUs it cannot use. If affinity information is unavailable, the script falls back to Python's detected CPU count.
+
+To limit parallelism further on memory-constrained or thermally limited systems, set `PROTON_BUILD_JOBS` to a positive integer:
 
 ```bash
 PROTON_BUILD_JOBS=4 python main.py
 ```
 
-For scripts and shared configuration, `auto` explicitly restores automatic CPU detection:
+For scripts and shared configuration, `auto` explicitly restores automatic CPU detection using the CPUs available to the process:
 
 ```bash
 PROTON_BUILD_JOBS=auto python main.py

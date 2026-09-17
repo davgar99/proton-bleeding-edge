@@ -71,12 +71,12 @@ def canonical_git_remote(url: str) -> str:
         path = parsed.path.lstrip("/")
 
     host = host.lower()
-    path = path.removesuffix(".git")
     # GitHub owner and repository names are case-insensitive. Normalize their
-    # path too so an equivalent remote such as valvesoftware/proton is not
-    # rejected just because Git reports different casing than our configured URL.
+    # path before stripping the conventional suffix so equivalent remotes also
+    # remain equivalent when the suffix itself has different casing.
     if host == "github.com":
         path = path.lower()
+    path = path.removesuffix(".git")
     return f"{host}/{path}"
 
 def get_origin_url(proton_path: str) -> str:
